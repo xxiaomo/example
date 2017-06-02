@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"gopkg.in/couchbase/gocb.v1"
 	"crypto/md5"	
+	"encoding/json"
 )
 
 //用户信息
@@ -64,13 +65,11 @@ func selectFromDB(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := cluster.OpenBucket("userdata", "")
 
 	//到缓存桶中查找数据
-	var userdata []User
-	_, err := bucket.Get(key, &userdata)
+	var data string
+	_, err := bucket.Get(key, &data)
 	if err == nil { //在缓存中找到数据
 		//输出数据并退出
-		for _, row := range userdata {
-			fmt.Fprintf(w, "id:%d, name:%s, age:%d\n", row.Id, row.Name, row.Age)
-		}
+		fmt.Fprintf(w, "%s", data)
 		return 
 	}
 
@@ -82,7 +81,8 @@ func selectFromDB(w http.ResponseWriter, r *http.Request) {
 	db, _ := sql.Open("sqlserver", "sqlserver://sa:123456@localhost?database=users&connection+timeout=30")
 
 	rows, err := db.Query(query)	//执行Query语句
-	// fmt.Println(query)
+	//声明数据结构存储查询数据
+	var userdata []User
 	var temp User
 	for rows.Next() {	//遍历查询结果
 		rows.Scan(&temp.Id, &temp.Name, &temp.Age)
@@ -92,13 +92,14 @@ func selectFromDB(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "not found")
 		return 
 	}
+	//生成json字符串
+	jsondata , _ := json.Marshal(userdata)
+	data = string(jsondata)
 	//把数据插入缓存
-	bucket.Upsert(key, userdata, 0)
+	bucket.Upsert(key , data, 0)
 
 	//输出数据
-	for _, row := range userdata {
-		fmt.Fprintf(w, "id:%d, name:%s, age:%d\n", row.Id, row.Name, row.Age)
-	}
+	fmt.Fprintf(w, "%s", data)
 }
 
 func main() {
