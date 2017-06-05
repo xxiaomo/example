@@ -81,7 +81,7 @@ func selectFromDB(w http.ResponseWriter, r *http.Request) {
 	db, _ := sql.Open("sqlserver", "sqlserver://sa:123456@localhost?database=users&connection+timeout=30")
 
 	rows, err := db.Query(query)	//执行Query语句
-	//声明数据结构存储查询数据
+	//声明User结构变量存储查询数据
 	var userdata []User
 	var temp User
 	for rows.Next() {	//遍历查询结果
@@ -92,7 +92,7 @@ func selectFromDB(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "not found")
 		return 
 	}
-	//生成json字符串
+	//把User结构序列化为json格式
 	jsondata , _ := json.Marshal(userdata)
 	data = string(jsondata)
 	//把数据插入缓存
